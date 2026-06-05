@@ -3076,6 +3076,13 @@ public class ReActAgent extends StructuredOutputCapableAgent implements AutoClos
             // Deep copy toolkit to avoid state interference between agents
             Toolkit agentToolkit = this.toolkit.copy();
 
+            // Rebind middlewares to the new toolkit copy so that any middleware
+            // holding a toolkit reference (e.g. HarnessSkillMiddleware,
+            // DynamicSkillMiddleware) operates on the agent's actual toolkit.
+            for (MiddlewareBase mw : middlewares) {
+                mw.rebindToolkit(agentToolkit);
+            }
+
             registerToolsFromHooks(agentToolkit);
 
             if (enableMetaTool) {

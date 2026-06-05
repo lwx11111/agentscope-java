@@ -17,6 +17,7 @@ package io.agentscope.core.middleware;
 
 import io.agentscope.core.agent.Agent;
 import io.agentscope.core.event.AgentEvent;
+import io.agentscope.core.tool.Toolkit;
 import java.util.function.Function;
 import reactor.core.publisher.Flux;
 import reactor.core.publisher.Mono;
@@ -121,5 +122,22 @@ public interface MiddlewareBase {
      */
     default Mono<String> onSystemPrompt(Agent agent, String currentPrompt) {
         return Mono.just(currentPrompt);
+    }
+
+    /**
+     * Rebind this middleware to a new toolkit instance.
+     *
+     * <p>Called by {@link io.agentscope.core.ReActAgent.Builder#build()} after the defensive deep
+     * copy of the toolkit ({@code toolkit.copy()}). Middlewares that hold a toolkit reference
+     * should override this method to update their reference to the new copy, ensuring that
+     * dynamically registered tools appear on the agent's actual toolkit.
+     *
+     * <p>The default implementation is a no-op, which is correct for middlewares that do not hold
+     * toolkit references.
+     *
+     * @param newToolkit the toolkit copy that the agent will actually use
+     */
+    default void rebindToolkit(Toolkit newToolkit) {
+        // no-op by default
     }
 }

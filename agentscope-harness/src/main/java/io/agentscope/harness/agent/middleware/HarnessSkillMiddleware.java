@@ -69,7 +69,7 @@ public class HarnessSkillMiddleware implements MiddlewareBase {
     private static final Logger log = LoggerFactory.getLogger(HarnessSkillMiddleware.class);
 
     private final List<AgentSkillRepository> repositories;
-    private final Toolkit toolkit;
+    private volatile Toolkit toolkit;
     private final SkillFilter builderFilter;
     private final SkillVisibilityFilter visibilityFilter;
     private final MarketplaceStager stager;
@@ -262,5 +262,10 @@ public class HarnessSkillMiddleware implements MiddlewareBase {
             }
         }
         return out;
+    }
+
+    @Override
+    public void rebindToolkit(Toolkit newToolkit) {
+        this.toolkit = newToolkit;
     }
 }

@@ -54,7 +54,7 @@ public class DynamicSkillMiddleware implements MiddlewareBase {
     private static final Logger log = LoggerFactory.getLogger(DynamicSkillMiddleware.class);
 
     private final List<AgentSkillRepository> repositories;
-    private final Toolkit toolkit;
+    private volatile Toolkit toolkit;
     private final SkillFilter builderFilter;
 
     private volatile SkillBox currentSkillBox;
@@ -187,5 +187,10 @@ public class DynamicSkillMiddleware implements MiddlewareBase {
             }
         }
         currentSkillBox = box;
+    }
+
+    @Override
+    public void rebindToolkit(Toolkit newToolkit) {
+        this.toolkit = newToolkit;
     }
 }
