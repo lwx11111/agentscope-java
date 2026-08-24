@@ -30,10 +30,12 @@ import io.agentscope.harness.agent.memory.compaction.ConversationCompactor;
 import io.agentscope.harness.agent.workspace.WorkspaceManager;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.function.Function;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 import reactor.core.publisher.Flux;
+import reactor.core.publisher.Mono;
 
 /**
  * Middleware that performs conversation compaction before each LLM reasoning call.
@@ -108,6 +110,20 @@ public class CompactionMiddleware implements HarnessRuntimeMiddleware {
 
                     return compactor
                             .compactIfNeeded(rc, conversation, effectiveConfig, agentId, sessionId)
+                            // Recover only from failures of the compaction sub-stream itself
+                            // (treated as "no compaction"). Do NOT catch errors emitted by the
+                            // downstream reasoning stream (next.apply) below: real model errors
+                            // (e.g. QPM / empty response / API failures that exhausted retries)
+                            // must propagate unchanged so the agent loop can terminate instead of
+                            // silently re-running the reasoning step forever.
+                            .onErrorResume(
+                                    e -> {
+                                        log.warn(
+                                                "Compaction failed, continuing without compaction:"
+                                                        + " {}",
+                                                e.getMessage());
+                                        return Mono.just(Optional.<List<Msg>>empty());
+                                    })
                             .flatMapMany(
                                     optResult -> {
                                         if (optResult.isEmpty()) {
@@ -130,14 +146,6 @@ public class CompactionMiddleware implements HarnessRuntimeMiddleware {
                                                         newMessages,
                                                         input.tools(),
                                                         input.options()));
-                                    })
-                            .onErrorResume(
-                                    e -> {
-                                        log.warn(
-                                                "Compaction failed, continuing without compaction:"
-                                                        + " {}",
-                                                e.getMessage());
-                                        return next.apply(input);
                                     });
                 });
     }
